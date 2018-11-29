@@ -6,6 +6,7 @@
 #define LED_PIN 8
 #define OK_PIN 9
 #define POT_PIN A0
+#define ANTENNA_PIN 2
 
 //liste des mots
 const char *mots[]={
@@ -16,7 +17,7 @@ const char *mots[]={
 	"boxes",
 	"leaks",
 	"strobe",
-	"bistro" 
+	"bistro",
 	"flick",
 	"bombs",
 	"break",
@@ -75,11 +76,12 @@ bool sleep_check(char units)
 		delay(UNIT_LENGTH);
 		if(digitalRead(BTN_PIN) == HIGH)
 		{
+			Serial.println("Button pressed");
 			int valPot = analogRead(POT_PIN);
 			return WORDS_COUNT * valPot / ANALOG_MAX == numeromot;
 		}
-		return false;
 	}
+	return false;
 }
 
 // returns wether the right frequency has been picked
@@ -100,7 +102,7 @@ bool send_word(const char* s)
 {
 	for(; *s; s++)
 	{
-		send_char(*s);
+		if(send_char(*s)) return true;
 		char delay = (*s==' ' ? WORDS_DELAY : LETTERS_DELAY) - PARTS_DELAY;
 		if(sleep_check(delay)) return true;
 	}
@@ -108,25 +110,28 @@ bool send_word(const char* s)
 }
 
 void setup() {
-  // initialisation:
-  Serial.begin(9600);
-  //lumiere rouge
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
-  //lumiere verte
-  pinMode(OK_PIN, OUTPUT);
-  digitalWrite(OK_PIN, LOW);
-  //bouton
-  pinMode(BTN_PIN,INPUT);
-  //choix du mot au hasard
-  numeromot = random(WORDS_COUNT);
-  //renvoi du mot pour vérification
-  Serial.println(mots[numeromot]);
+	// initialisation:
+	Serial.begin(9600);
+	//lumiere rouge
+	pinMode(LED_PIN, OUTPUT);
+	digitalWrite(LED_PIN, LOW);
+	//lumiere verte
+	pinMode(OK_PIN, OUTPUT);
+	digitalWrite(OK_PIN, LOW);
+	//bouton
+	pinMode(BTN_PIN,INPUT);
+	//choix du mot au hasard
+	randomSeed(analogRead(ANTENNA_PIN));
+	numeromot = random(WORDS_COUNT);
+	//renvoi du mot pour vérification
+	Serial.print("mot: ");
+	Serial.println(mots[numeromot]);
 }
 
 void loop() {
 	if(send_word(mots[numeromot]))
 	{ // success, set LEDs and wait indefinitely
+		Serial.println("Success");
 		digitalWrite(OK_PIN, HIGH);
 		digitalWrite(LED_PIN, LOW);
 		for(;;) delay(ULONG_MAX);
